@@ -1,6 +1,8 @@
 # get-geojson-from-gsivector
 地理院地図Vectorのベクトルタイルからgeojsonを取得するツール
 
+https://mghs15.github.io/get-geojson-from-gsivector/getgeojson.html
+
 ## 使い方
 * `表示タイル内地物をすべて取得`：表示している範囲でロードされているタイルに存在する地物をすべて取得する。
 * 地図上で範囲を指定し、その範囲内の地物をすべて取得する。
