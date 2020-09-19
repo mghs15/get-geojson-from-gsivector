@@ -2,11 +2,10 @@
 <html>
 <head>
 <meta charset='utf-8' />
-<title>Railway Map</title>
+<title>get geojson</title>
 <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
 <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.8.1/mapbox-gl.js'></script>
 <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.8.1/mapbox-gl.css' rel='stylesheet' />
-<script src='https://unpkg.com/@turf/turf/turf.min.js'></script>
 <style>
 body { margin:0; padding:0; }
 #map {
@@ -28,11 +27,15 @@ body { margin:0; padding:0; }
     max-height: 90%;
     overflow: auto;
 }
+div.colorselect {
+  margin: 5px 0px 5px 0px;
+
+}
 button.local {
   display: block;
   text-align:center;
   background: #dddddd;
-  padding: 0 0.5em 0 0.5em;
+  padding 0 0.5em 0 0.5em;
   border: solid 2px #ddd;
   border-radius: 3px;
   margin: 0px 0px 5px 0px;
@@ -40,16 +43,17 @@ button.local {
   font-size: 1em;
   width: 100%;
 }
-#download-button {
+#download {
   display: block;
   text-align:center;
   background: #dddddd;
-  padding: 0 0.5em 0 0.5em;
+  padding 0 0.5em 0 0.5em;
   border: solid 2px #ddd;
   border-radius: 3px;
   margin: 0px 0px 5px 0px;
   line-height: 1.5em;
   font-size: 1em;
+  width: 100%;
 }
 
 </style>
@@ -59,35 +63,17 @@ button.local {
 
 <div id='map'></div>
 <div id='menu'>
-  <h1 class="titlebox" style="font-size: 100%; margin: 0 0;">ベクトルタイルからGeoJSONを取得するツール</h1>
-  <div>下のボタンか、地図上で範囲を指定→ダウンロード</div>
-  <button type="button" class="local" name="colchange" onclick="action()" >表示タイル内地物をすべて取得</button>
-  <div id="download-button"><a id="download">取得したGeoJSONをダウンロード</a></div>
+  <button type="button" class="local" onclick="action()" >実行</button>
+  <div><a id="download">ダウンロード</a></div>
+  <span>レイヤ選択</span>
+  <button type="button" class="local" onclick="checkAll()" >全選択・解除</button>
+  <div id="select-layers"></div>
 </div>
 
 <script>
 
 /*************************************************/
-/*Mapbox 関係設定                                */
-/*************************************************/
-var map = new mapboxgl.Map({
-  container: 'map', // container id
-  hash: true, //add #position on URL
-  style: './style.json', // stylesheet location
-  center: [139.78148, 35.768793], // starting position [lng, lat]
-  zoom: 15, // starting zoom
-  maxZoom: 17.99,
-  localIdeographFontFamily: ['MS Gothic', 'Hiragino Kaku Gothic Pro', 'sans-serif']
-});
-
-
-map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
-map.addControl(new mapboxgl.ScaleControl() );
-
-map.showTileBoundaries = true;
-
-/*************************************************/
-/*ダウンロード用データの設定                     */
+/* tile.json                                     */
 /*************************************************/
 
 var gsi_tile_json = {
@@ -97,7 +83,7 @@ var gsi_tile_json = {
   "id": "gsimaps_vector",
   "format": "pbf",
   "attribution": "<a href=\"https://github.com/gsi-cyberjapan/gsimaps-vector-experiment\">地理院地図Vector（仮称）提供実験</a>",
-  "maxzoom": 17,
+  "maxzoom": 16,
   "minzoom": 4,
   "bounds": [-180, -85.0511, 180, 85.0511],
   "center": [139.770832,35.689835,14],
@@ -127,227 +113,70 @@ var gsi_tile_json = {
 };
 
 
-//事前にデータソースを準備しておく
-//データソースのデータを入れ替えていくほうがよさそう（そうしないと、データソースの重複エラーが出る。）
-map.on('load', function() {
-  //first click point 
-  map.addSource('first-click-point', {
-    type: 'geojson',
-    data: {
-      type: 'FeatureCollection',
-      features: []
-    }
-  });
-  //bbox(ガイド用)
-  map.addSource('bbox-guide', {
-    type: 'geojson',
-    data: {
-      type: 'FeatureCollection',
-      features: []
-    }
-  });
-  //bbox
-  map.addSource('bbox', {
-    type: 'geojson',
-    data: {
-      type: 'FeatureCollection',
-      features: []
-    }
-  });
-});
+/*************************************************/
+/* UI                                            */
+/*************************************************/
+//ボタン操作
+var action = function(){
+  getGeojson(null, true);
+}
 
-//2回のクリックでbboxを指定してもらうためのパラメータ
-var bboxFlag = false;
-var bboxCorrd = {
-  lng_1: null,
-  lat_1: null,
-  lng_2: null,
-  lat_2: null
+//リスト生成
+var input_lists_html = "<form>";
+
+for(i in gsi_tile_json["vector_layers"]){
+  var layer_name = gsi_tile_json["vector_layers"][i]["id"];
+  var input_html = '<input type="checkbox" checked="checked" name="select_layer" value="' + layer_name + '">' + layer_name + "<br>";
+  console.log(input_html);
+  input_lists_html = input_lists_html + input_html;
+}
+
+input_lists_html = input_lists_html + "</form>";
+
+console.log(document.getElementById("select-layers"));
+
+document.getElementById("select-layers").innerHTML = input_lists_html;
+
+console.log(document.getElementById("select-layers"));
+
+
+//全選択・解除
+var check_all_flag = false;
+var checkAll = function(){
+  var node_list = document.getElementsByName("select_layer");
+  console.log(node_list);
+  for(i in node_list){
+    node_list[i].checked = check_all_flag;
+  }
+  check_all_flag = !check_all_flag;
 }
 
 
-map.on('mousemove', function(e) {
-  if(bboxFlag){
-  
-    if(map.getLayer('bbox-guide')){
-      map.removeLayer('bbox-guide');
-    }
-    
-    //クリックポイント
-    var clickPoints = turf.point([ e.lngLat.lng, e.lngLat.lat ]);
-    
-    //bbox 
-    var ne_lng_guide = Math.max(bboxCorrd.lng_1, e.lngLat.lng);
-    var ne_lat_guide = Math.max(bboxCorrd.lat_1, e.lngLat.lat);
-    var sw_lng_guide = Math.min(bboxCorrd.lng_1, e.lngLat.lng);
-    var sw_lat_guide = Math.min(bboxCorrd.lat_1, e.lngLat.lat);
-    
-    var bbox_poly_guide = turf.bboxPolygon([sw_lng_guide, sw_lat_guide, ne_lng_guide, ne_lat_guide]);  
-    
-    //レンダリング
-    if (bbox_poly_guide !== null) {
-      //bbox
-      map.getSource('bbox-guide').setData(
-        bbox_poly_guide
-      );
-      map.addLayer({
-        id: 'bbox-guide',
-        type: 'line',
-        source: 'bbox-guide',
-        layout: {},
-        paint: {
-          'line-color': '#FF7700',
-          'line-width': 2,
-          'line-dasharray': [5,5]
-        }
-      });
-    }
-    
-  }
+/*************************************************/
+/* Mapbox 関係設定                               */
+/*************************************************/
+var map = new mapboxgl.Map({
+  container: 'map', // container id
+  hash: true, //add #position on URL
+  style: './style.json', // stylesheet location
+  center: [139.78148, 35.768793], // starting position [lng, lat]
+  zoom: 15, // starting zoom
+  maxZoom: 17.99,
+  localIdeographFontFamily: ['MS Gothic', 'Hiragino Kaku Gothic Pro', 'sans-serif']
 });
 
 
-map.on('click', function(e) {
-  if(!bboxFlag){
-    bboxFlag = !bboxFlag;
-    
-    if(map.getLayer('first-click-point')){
-      map.removeLayer('first-click-point');
-    }
-    
-    //クリックポイント
-    var clickPoints = turf.point([ e.lngLat.lng, e.lngLat.lat ]);
-    
-    bboxCorrd.lng_1 = e.lngLat.lng;
-    bboxCorrd.lat_1 = e.lngLat.lat;
-    
-    //クリックポイントの表示
-    map.getSource('first-click-point').setData({
-      type: 'FeatureCollection',
-      features: [
-        clickPoints
-      ]
-    });
-    
-    map.addLayer({
-      id: 'first-click-point',
-      type: 'circle',
-      source: 'first-click-point',
-      paint: {
-        'circle-radius': 10,
-        'circle-color': '#FF7700'
-      }
-    });
-        
-  }else{
-    bboxFlag = !bboxFlag;
+map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+map.addControl(new mapboxgl.ScaleControl() );
 
-    //元に戻しておく。
-    if(map.getLayer('first-click-point')){
-      map.removeLayer('first-click-point');
-    }
-    if(map.getLayer('bbox-guide')){
-      map.removeLayer('bbox-guide');
-    }
-    if(map.getLayer('bbox')){
-      map.removeLayer('bbox');
-    }
-    
-    
-    //クリックポイント
-    var clickPoints = turf.point([ e.lngLat.lng, e.lngLat.lat ]);
-   
-    bboxCorrd.lng_2 = e.lngLat.lng;
-    bboxCorrd.lat_2 = e.lngLat.lat;
-    
-    
-    //bbox生成
-    var ne_lng = Math.max(bboxCorrd.lng_1, bboxCorrd.lng_2);
-    var ne_lat = Math.max(bboxCorrd.lat_1, bboxCorrd.lat_2);
-    var sw_lng = Math.min(bboxCorrd.lng_1, bboxCorrd.lng_2);
-    var sw_lat = Math.min(bboxCorrd.lat_1, bboxCorrd.lat_2);
-    console.log(sw_lng + "," + sw_lat + "," + ne_lng + "," + ne_lat);
-    console.log(bboxCorrd);
-    
-    var options = {
-      bbox: [sw_lng, sw_lat, ne_lng, ne_lat]
-    };
-    
-    var bbox_poly = turf.bboxPolygon(options.bbox);  
-    
-    //bbox初期化
-    bboxCorrd.lng_1 = null;
-    bboxCorrd.lng_1 = null;
-    bboxCorrd.lng_2 = null;
-    bboxCorrd.lng_2 = null;
-    
-    //地物の取得
-    var all_features = [];
-    
-    for(i in gsi_tile_json["vector_layers"]){
-      
-      var features = map.querySourceFeatures("gsibv-vectortile-source-1-4-16", {
-        sourceLayer: gsi_tile_json["vector_layers"][i]["id"]
-      });
-      
-      var slayer_features_inBbox = [];
-      
-      for(j in features){
-        var feature = {};
-        if(features[j].geometry.type == "Point"){
-          var isTargetPoint = turf.booleanPointInPolygon(features[j].geometry.coordinates, bbox_poly);
-          if(isTargetPoint){
-            feature = features[j];
-          }
-        }else{
-          feature = turf.bboxClip(features[j], options.bbox);
-        }
-        
-        if(feature && feature.geometry && feature.geometry.coordinates){
-          slayer_features_inBbox = slayer_features_inBbox.concat(feature);
-        }
-        
-      }
-      
-      all_features = all_features.concat(slayer_features_inBbox);
-      
-    };
-    
-    
-    var geojson = {
-      "type": "FeatureCollection",
-      "features": all_features
-    };
-    
-    
-    //ダウンロード準備
-    var results_string = JSON.stringify(geojson, null, 4);
-    setdownload(results_string, "output_select.geojson"); //ダウンロード準備
-    console.log("解析完了");
+map.showTileBoundaries = true;
 
-    
-    //レンダリング
-    if (bbox_poly !== null) {
-      //bbox
-      map.getSource('bbox').setData(
-        bbox_poly
-      );
-      map.addLayer({
-        id: 'bbox',
-        type: 'line',
-        source: 'bbox',
-        layout: {},
-        paint: {
-          'line-color': '#FF0000'
-        }
-      });
-    }else{
-      console.log("error?")
-    }
-    
-  }
-});
+/*************************************************/
+/* ダウンロード用データの設定                    */
+/*************************************************/
 
+
+//GeoJSONの取得
 var getGeojson = function(){
   /* スタイルの確認 */
   var styleLoadStatus = map.isStyleLoaded();
@@ -355,10 +184,15 @@ var getGeojson = function(){
   
     var all_features = [];
     
-    for(i in gsi_tile_json["vector_layers"]){
+    
+    var node_list = document.getElementsByName("select_layer");
+    for(i in node_list){
+      
+      if(!node_list[i].checked) continue;
+      
       
       var features = map.querySourceFeatures("gsibv-vectortile-source-1-4-16", {
-         sourceLayer: gsi_tile_json["vector_layers"][i]["id"]
+         sourceLayer: node_list[i].value
       });
       
       all_features = all_features.concat(features);
@@ -374,8 +208,8 @@ var getGeojson = function(){
     
     //ダウンロード準備
     var results_string = JSON.stringify(geojson, null, 4);
-    setdownload(results_string, "output_all.geojson"); //ダウンロード準備
-    console.log("解析完了");
+    setdownload(results_string, "output.geojson"); //ダウンロード準備
+    console.log("完了");
     
   }else{
     alert("まだ地図のスタイルを読み込めていません！");
@@ -384,7 +218,7 @@ var getGeojson = function(){
 
 
 /*************************************************/
-/*ダウンロードの処理                               */
+/* ダウンロードの処理                            */
 /*************************************************/
 
 var setdownload = function(string, filename){
@@ -395,14 +229,6 @@ var setdownload = function(string, filename){
       a.download = filename;
 }
 
-
-/*************************************************/
-/*ボタンごとの処理                               */
-/*************************************************/
-//通常
-var action = function(){
-  getGeojson(null, true);
-}
 
 </script>
  
