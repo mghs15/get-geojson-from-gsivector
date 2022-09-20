@@ -45,12 +45,42 @@ button.local, #download {
   cursor: pointer;
 }
 
+#overlay {
+  position: absolute;
+  top: 50px;
+  left: 0;
+  right: 0;
+  margin-left:auto;
+  margin-right:auto;
+  text-align: center;
+  z-index: 99999;
+  pointer-events: none;
+}
+
+.ready-message {
+  display: inline-block;
+  background-color: #FFFFFFCC;
+  border-top: 2px solid #AAAAFF;
+  border-bottom: 2px solid #AAAAFF;
+  padding: 8px 24px;
+  text-align: center;
+  box-shadow: 4px 4px 4px #DDDDFF;
+  font-size: 1.2em;
+  font-wight: bold;
+}
+
+.mini {
+  font-size: 0.6em;
+  font-wight: normal;
+}
+
 </style>
 </head>
 <body>
 
 
 <div id='map'></div>
+<div id='overlay'></div>
 <div id='menu'>
   <button type="button" class="local" onclick="action()" >一括取得</button>
   <div><a id="download">ダウンロード</a></div>
@@ -164,7 +194,7 @@ const checkAll = function(){
 const map = new mapboxgl.Map({
   container: 'map', // container id
   hash: true, //add #position on URL
-  style: 'https://gsi-cyberjapan.github.io/gsivectortile-mapbox-gl-js/std.json', // stylesheet location
+  style: 'https://gsi-cyberjapan.github.io/gsivectortile-mapbox-gl-js/pale.json', // stylesheet location
   center: [139.78148, 35.768793], // starting position [lng, lat]
   zoom: 15, // starting zoom
   maxZoom: 17.99,
@@ -202,6 +232,7 @@ map.on("click", (e) => {
   const resultsString = JSON.stringify(geojson, null, 4);
   setdownload(resultsString, "output.geojson"); //ダウンロード準備
   console.log("完了");
+  
 
 });
 
@@ -308,11 +339,29 @@ const getGeojson = (sourceId, layerList) => {
 /*************************************************/
 
 const setdownload = function(string, filename){
+  
+  const a = document.getElementById('download');
+  a.removeAttribute('href');
+  
   const blob = new Blob([string], {type: 'text\/plain'});
   const url = URL.createObjectURL(blob);
-  const a = document.getElementById('download');
   a.href = window.URL.createObjectURL(blob);
   a.download = filename;
+  
+  showReady();
+  
+}
+
+const showReady = () => {
+  
+  const eid = "id" + Math.random();
+  const html = `<div id="${eid}" class="ready-message"><div class="main">ダウンロード準備完了</div><div class="mini">${Date.now()}</div></div>`;
+  document.getElementById("overlay").innerHTML = html;
+  
+  setTimeout(() => {
+    const e = document.getElementById(eid);
+    if(e) e.remove();
+  }, 3000);
 }
 
 
