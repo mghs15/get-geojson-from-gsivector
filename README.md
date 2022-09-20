@@ -1,19 +1,22 @@
 # get-geojson-from-gsivector
 地理院地図Vectorのベクトルタイルからgeojsonを取得するツール
 
-https://mghs15.github.io/get-geojson-from-gsivector/getgeojson.html
+https://mghs15.github.io/get-geojson-from-gsivector/index.html
 
 （試作版：範囲指定モードがあるもの）
-
-https://mghs15.github.io/get-geojson-from-gsivector/getgeojson_simple.html
+https://mghs15.github.io/get-geojson-from-gsivector/getgeojson_heavy.html
 
 ## 使い方
-1. レイヤリストから、ダウンロードしたいレイヤにチェックを入れる。
+### source layer 単位での取得
+1. レイヤリストから、ダウンロードしたいレイヤ（source layer）にチェックを入れる。
 2. 「実行」ボタンをクリック。
 3. 「ダウンロード」ボタンからGeoJSONをダウンロード。
 
+### 地物一つ毎の取得
+1. 地図上で、取得したい地物をクリックして選択。
+2 「ダウンロード」ボタンからGeoJSONをダウンロード。
 
-（試作版：範囲指定モード）
+### 試作版：範囲指定モード
 
 以下の2通りから選択
 
