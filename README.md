@@ -7,12 +7,12 @@ https://mghs15.github.io/get-geojson-from-gsivector/index.html
 https://mghs15.github.io/get-geojson-from-gsivector/getgeojson_heavy.html
 
 ## 使い方
-### source layer 単位での取得
+### 一括取得（source layer 単位）
 1. レイヤリストから、ダウンロードしたいレイヤ（source layer）にチェックを入れる。
 2. 「実行」ボタンをクリック。
 3. 「ダウンロード」ボタンからGeoJSONをダウンロード。
 
-### 地物一つ毎の取得
+### 地物毎の取得
 1. 地図上で、取得したい地物をクリックして選択。
 2 「ダウンロード」ボタンからGeoJSONをダウンロード。
 
