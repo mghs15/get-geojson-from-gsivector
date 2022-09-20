@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8' />
+<title>get geojson from gsi vector</title>
+<meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.13.2/mapbox-gl.js'></script>
+<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.13.2/mapbox-gl.css' rel='stylesheet' />
+<style>
+body { margin:0; padding:0; }
+#map {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+}
+#menu {
+  position: absolute;
+  left:  0.5em;
+  top: 0.5em; 
+  padding: 0.2em 0.5em;
+  margin: 0 0;
+  background: #eeeeee;
+  box-shadow: 0px 0px 0px 5px #eeeeee;
+  border: dashed 3px #dddddd;
+  font-family: 'Open Sans', sans-serif;
+  max-height: 90%;
+  overflow: auto;
+}
+div.colorselect {
+  margin: 5px 0px 5px 0px;
+
+}
+button.local, #download {
+  display: block;
+  text-align:center;
+  background: #dddddd;
+  padding 0 0.5em 0 0.5em;
+  border: solid 2px #ddd;
+  border-radius: 3px;
+  margin: 0px 0px 5px 0px;
+  line-height: 1.5em;
+  font-size: 1em;
+  width: 100%;
+  cursor: pointer;
+}
+
+</style>
+</head>
+<body>
+
+
+<div id='map'></div>
+<div id='menu'>
+  <button type="button" class="local" onclick="action()" >一括取得</button>
+  <div><a id="download">ダウンロード</a></div>
+  <span>レイヤ選択</span>
+  <button type="button" class="local" onclick="checkAll()" >全選択・解除</button>
+  <div id="select-layers"></div>
+</div>
+
+<script>
+
+/*************************************************/
+/* tile.json                                     */
+/*************************************************/
+
+const gsi_tile_json = {
+  "tilejson": "2.2.0",
+  "tiles": ["https://cyberjapandata.gsi.go.jp/xyz/experimental_bvmap/{z}/{x}/{y}.pbf"],
+  "name": "gsimaps_vector",
+  "id": "gsimaps_vector",
+  "format": "pbf",
+  "attribution": "<a href=\"https://github.com/gsi-cyberjapan/gsimaps-vector-experiment\">地理院地図Vector（仮称）提供実験</a>",
+  "maxzoom": 16,
+  "minzoom": 4,
+  "bounds": [-180, -85.0511, 180, 85.0511],
+  "center": [139.770832,35.689835,14],
+  "vector_layers": [
+    {"id": "symbol", "description": "symbol"},
+    {"id": "boundary", "description": "boundary"},
+    {"id": "road", "description": "road"},
+    {"id": "railway", "description": "railway"},
+    {"id": "searoute", "description": "searoute"},
+    {"id": "coastline", "description": "coastline"},
+    {"id": "river", "description": "river"},
+    {"id": "lake", "description": "lake"},
+    {"id": "waterarea", "description": "waterarea"},
+    {"id": "elevation", "description": "elevation"},
+    {"id": "transp", "description": "transp"},
+    {"id": "contour", "description": "contour" },
+    {"id": "landforma", "description": "landforma"},
+    {"id": "structurea", "description": "structurea"},
+    {"id": "wstructurea", "description": "wstructurea"},
+    {"id": "building", "description": "building"},
+    {"id": "transl", "description": "transl"},
+    {"id": "structurel", "description": "structurel"},
+    {"id": "landformp", "description": "landformp"},
+    {"id": "landforml", "description": "landforml"},
+    {"id": "label", "description": "label"}
+  ]
+};
+
+
+/*************************************************/
+/* UI                                            */
+/*************************************************/
+//ボタン操作
+const action = function(){
+  
+  const layerList = [];
+  
+  const nodeList = document.getElementsByName("select_layer");
+  for(i in nodeList){
+    if(nodeList[i].checked) layerList.push(nodeList[i].value);
+  }
+  
+  const sourceId = "gsibv-vectortile-source-1-4-16";
+  
+  const geojson = getGeojson(sourceId, layerList);
+  
+  
+  //ダウンロード準備
+  const resultsString = JSON.stringify(geojson, null, 4);
+  setdownload(resultsString, "output.geojson"); //ダウンロード準備
+  console.log("完了");
+    
+}
+
+//リスト生成
+let input_lists_html = "<form>";
+
+for(i in gsi_tile_json["vector_layers"]){
+  const layer_name = gsi_tile_json["vector_layers"][i]["id"];
+  const input_html = '<input type="checkbox" checked="checked" name="select_layer" value="' + layer_name + '">' + layer_name + "<br>";
+  console.log(input_html);
+  input_lists_html = input_lists_html + input_html;
+}
+
+input_lists_html = input_lists_html + "</form>";
+
+console.log(document.getElementById("select-layers"));
+
+document.getElementById("select-layers").innerHTML = input_lists_html;
+
+console.log(document.getElementById("select-layers"));
+
+
+//全選択・解除
+let check_all_flag = false;
+const checkAll = function(){
+  const node_list = document.getElementsByName("select_layer");
+  console.log(node_list);
+  for(i in node_list){
+    node_list[i].checked = check_all_flag;
+  }
+  check_all_flag = !check_all_flag;
+}
+
+
+/*************************************************/
+/* Mapbox 関係設定                               */
+/*************************************************/
+const map = new mapboxgl.Map({
+  container: 'map', // container id
+  hash: true, //add #position on URL
+  style: 'https://gsi-cyberjapan.github.io/gsivectortile-mapbox-gl-js/std.json', // stylesheet location
+  center: [139.78148, 35.768793], // starting position [lng, lat]
+  zoom: 15, // starting zoom
+  maxZoom: 17.99,
+  localIdeographFontFamily: ['MS Gothic', 'Hiragino Kaku Gothic Pro', 'sans-serif']
+});
+
+
+map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
+map.addControl(new mapboxgl.ScaleControl() );
+
+map.showTileBoundaries = true;
+
+/*************************************************/
+/* ダウンロード用データの設定                    */
+/*************************************************/
+
+map.on("click", (e) => {
+
+  const sv = 5;
+  const bb = [
+    [e.point.x - sv, e.point.y - sv],
+    [e.point.x + sv, e.point.y + sv]
+  ];
+  const features = map.queryRenderedFeatures(bb);
+  const geojson = {
+    "type": "FeatureCollection",
+    "features": [features[0]]
+  };
+  console.log(geojson);
+
+  //強調表示用
+  highlightFeature(geojson);  
+  
+  //ダウンロード準備
+  const resultsString = JSON.stringify(geojson, null, 4);
+  setdownload(resultsString, "output.geojson"); //ダウンロード準備
+  console.log("完了");
+
+});
+
+const highlightFeature = (geojson) => {
+  map.getSource("selected-feature").setData(geojson);
+}
+
+map.on("load", () => {
+  map.addSource("selected-feature", {
+    type: "geojson",
+    data: {
+      "type": "FeatureCollection",
+      features: []
+    }
+  });
+
+  map.addLayer({
+    id: "selected-point-feature", 
+    type: "circle",
+    source: "selected-feature",
+    filter: ["any",
+      ["==", ["geometry-type"], "Point"],
+      ["==", ["geometry-type"], "MultiPoint"]
+    ],
+    layout: {},
+    paint: {
+      "circle-radius": 8,
+      "circle-color": "#FF0000"
+    }
+  });
+
+  map.addLayer({
+    id: "selected-line-feature", 
+    type: "line",
+    source: "selected-feature",
+    filter: ["any",
+      ["==", ["geometry-type"], "LineString"],
+      ["==", ["geometry-type"], "MultiLineString"]
+    ],
+    layout: {},
+    paint: {
+      "line-width": 8,
+      "line-opacity": 0.8,
+      "line-color": "#FF0000"
+    }
+  });
+
+  map.addLayer({
+    id: "selected-fill-feature", 
+    type: "fill",
+    source: "selected-feature",
+    filter: ["any",
+      ["==", ["geometry-type"], "Polygon"],
+      ["==", ["geometry-type"], "MultiPolygon"]
+    ],
+    layout: {},
+    paint: {
+      "fill-opacity": 0.8,
+      "fill-color": "#FF0000",
+      "fill-outline-color": "#FF0000"
+    }
+  });
+});
+
+
+const getGeojson = (sourceId, layerList) => {
+  /* スタイルの確認 */
+  const styleLoadStatus = map.isStyleLoaded();
+  if(styleLoadStatus){
+    let allFeatures = [];
+    
+    console.log(layerList);
+    
+    for(i in layerList){
+      
+      const targetLayer = layerList[i];
+      
+      const features = map.querySourceFeatures(sourceId, {
+         sourceLayer: targetLayer
+      });
+      
+      allFeatures = allFeatures.concat(features);
+      
+    };
+    
+    
+    const geojson = {
+      "type": "FeatureCollection",
+      "features": allFeatures
+    };
+    
+    console.log(geojson);
+    return geojson;
+    
+    
+  }else{
+    alert("まだ地図のスタイルを読み込めていません！");
+  }
+}
+
+
+/*************************************************/
+/* ダウンロードの処理                            */
+/*************************************************/
+
+const setdownload = function(string, filename){
+  const blob = new Blob([string], {type: 'text\/plain'});
+  const url = URL.createObjectURL(blob);
+  const a = document.getElementById('download');
+  a.href = window.URL.createObjectURL(blob);
+  a.download = filename;
+}
+
+
+</script>
+ 
+</body>
+</html>
