@@ -219,6 +219,9 @@ map.on("click", (e) => {
     [e.point.x + sv, e.point.y + sv]
   ];
   const features = map.queryRenderedFeatures(bb);
+  
+  if(features.length < 1) return;
+  
   const geojson = {
     "type": "FeatureCollection",
     "features": [features[0]]
@@ -233,7 +236,6 @@ map.on("click", (e) => {
   setdownload(resultsString, "output.geojson"); //ダウンロード準備
   console.log("完了");
   
-
 });
 
 const highlightFeature = (geojson) => {
