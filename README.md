@@ -1,6 +1,9 @@
 # get-geojson-from-gsivector
-地理院地図Vectorのベクトルタイルからgeojsonを取得するツール
+地理院地図Vector のベクトルタイルからgeojsonを取得するツール
 
+https://mghs15.github.io/get-geojson-from-gsivector/index.html
+
+（従来版）
 https://mghs15.github.io/get-geojson-from-gsivector/index.html
 
 （試作版：範囲指定モードがあるもの）
@@ -14,7 +17,7 @@ https://mghs15.github.io/get-geojson-from-gsivector/getgeojson_heavy.html
 
 ### 地物毎の取得
 1. 地図上で、取得したい地物をクリックして選択。
-2 「ダウンロード」ボタンからGeoJSONをダウンロード。
+2 「ダウンロード」ボタンから GeoJSON をダウンロード。
 
 ### 試作版：範囲指定モード
 
@@ -23,10 +26,10 @@ https://mghs15.github.io/get-geojson-from-gsivector/getgeojson_heavy.html
 * `表示タイル内地物をすべて取得`：表示している範囲でロードされているタイルに存在する地物をすべて取得する。
 * 地図上で範囲を指定し、その範囲内の地物をすべて取得する。こちらの方が負荷が大きい。
 
-いずれの場合も、`取得したGeoJSONをダウンロード`ボタンからGeoJSONをダウンロード。
+いずれの場合も、`取得したGeoJSONをダウンロード`ボタンから GeoJSON をダウンロード。
 
 ## 技術メモ
-* Mapbox GL JSの`queryRenderedFeatures()`を用いている関係上、表示している「タイル」に入っている地物をすべて取得する。
+* Mapbox GL JS の `queryRenderedFeatures()` を用いている関係上、表示している「タイル」に入っている地物をすべて取得する。
 * タイル境界の重複が含まれてしまう。
 * 範囲指定で切り出す場合、切り出した後に空の地物が残ってしまう。
 
