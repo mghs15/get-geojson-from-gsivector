@@ -4,7 +4,7 @@
 https://mghs15.github.io/get-geojson-from-gsivector/index.html
 
 （従来版）
-https://mghs15.github.io/get-geojson-from-gsivector/index.html
+https://mghs15.github.io/get-geojson-from-gsivector/index2.html
 
 （試作版：範囲指定モードがあるもの）
 https://mghs15.github.io/get-geojson-from-gsivector/getgeojson_heavy.html
