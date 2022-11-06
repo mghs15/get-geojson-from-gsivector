@@ -17,7 +17,7 @@ https://mghs15.github.io/get-geojson-from-gsivector/getgeojson_heavy.html
 
 ### 地物毎の取得
 1. 地図上で、取得したい地物をクリックして選択。
-2 「ダウンロード」ボタンから GeoJSON をダウンロード。
+2. 「ダウンロード」ボタンから GeoJSON をダウンロード。
 
 ### 試作版：範囲指定モード
 
