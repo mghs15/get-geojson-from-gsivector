@@ -4,8 +4,9 @@
 <meta charset='utf-8' />
 <title>get geojson from gsi vector</title>
 <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
-<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v1.13.2/mapbox-gl.js'></script>
-<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v1.13.2/mapbox-gl.css' rel='stylesheet' />
+<script src='https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.js'></script>
+<link href='https://unpkg.com/maplibre-gl@2.4.0/dist/maplibre-gl.css' rel='stylesheet' />
+<script src='https://unpkg.com/pmtiles@2.5.0/dist/index.js'></script>
 <style>
 body { margin:0; padding:0; }
 #map {
@@ -97,7 +98,7 @@ button.local, #download {
 
 const gsi_tile_json = {
   "tilejson": "2.2.0",
-  "tiles": ["https://cyberjapandata.gsi.go.jp/xyz/optimal_bvmap-v1/{z}/{x}/{y}.pbf"],
+  "tiles": ["pmtiles://https://cyberjapandata.gsi.go.jp/xyz/optimal_bvmap-v1/optimal_bvmap-v1.pmtiles/{z}/{x}/{y}"],
   "name": "gsimaps_vector",
   "id": "gsimaps_vector",
   "format": "pbf",
@@ -191,9 +192,13 @@ const checkAll = function(){
 
 
 /*************************************************/
-/* Mapbox 関係設定                               */
+/*MapLibre+PMTiles 関係設定                      */
 /*************************************************/
-const map = new mapboxgl.Map({
+
+let protocol = new pmtiles.Protocol();
+maplibregl.addProtocol("pmtiles", protocol.tile);
+
+const map = new maplibregl.Map({
   container: 'map', // container id
   hash: true, //add #position on URL
   style: 'https://mghs15.github.io/styling-tools-for-gsi-optbv/mono2.json', // stylesheet location
@@ -204,8 +209,8 @@ const map = new mapboxgl.Map({
 });
 
 
-map.addControl(new mapboxgl.NavigationControl(), 'bottom-right');
-map.addControl(new mapboxgl.ScaleControl() );
+map.addControl(new maplibregl.NavigationControl(), 'bottom-right');
+map.addControl(new maplibregl.ScaleControl() );
 
 map.showTileBoundaries = true;
 
